@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Lịch sử điểm danh{% endblock %}
+{% block content %}
+<h1>Lịch sử điểm danh của tôi</h1>
+<div class="card">
+    {% if student %}
+        <p><strong>Sinh viên:</strong> {{ student.student_code }} - {{ student.full_name }}</p>
+        <p><strong>Lớp:</strong> {{ student.class_name }}</p>
+    {% else %}
+        <p>Tài khoản chưa được liên kết với sinh viên.</p>
+    {% endif %}
+</div>
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Môn học</th>
+                <th>Ngày</th>
+                <th>Thời gian buổi học</th>
+                <th>Thời gian điểm danh</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.subject_name }}</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.start_time }} - {{ row.end_time }}</td>
+                <td>{{ row.checkin_time }}</td>
+                <td>{{ row.status }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">Chưa có dữ liệu điểm danh.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

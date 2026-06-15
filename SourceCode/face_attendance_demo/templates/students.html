@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Sinh viên{% endblock %}
+{% block content %}
+<div class="actions" style="justify-content: space-between; align-items: center;">
+    <h1>Danh sách sinh viên</h1>
+    {% if session.get('role') in ['admin', 'teacher'] %}
+        <a class="btn" href="{{ url_for('add_student') }}">Thêm sinh viên</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Mã sinh viên</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>Số ảnh khuôn mặt</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.id }}</td>
+                <td>{{ student.student_code }}</td>
+                <td>{{ student.full_name }}</td>
+                <td>{{ student.class_name }}</td>
+                <td>{{ face_counts.get(student.id, 0) }}</td>
+                <td>
+                    <div class="actions">
+                    {% if session.get('role') in ['admin', 'teacher'] %}
+                        <a class="btn small" href="{{ url_for('enroll', student_id=student.id) }}">Đăng ký khuôn mặt</a>
+                    {% endif %}
+                    {% if session.get('role') in ['admin', 'teacher'] %}
+                        <form method="post" action="{{ url_for('delete_student_faces', student_id=student.id) }}" onsubmit="return confirm('Xóa toàn bộ ảnh khuôn mặt của sinh viên này?')">
+                            <button class="btn small" type="submit" style="background:#e67e22;">Xóa ảnh</button>
+                        </form>
+                    {% endif %}
+                    {% if session.get('role') == 'admin' %}
+                        <form method="post" action="{{ url_for('delete_student', student_id=student.id) }}" onsubmit="return confirm('Xóa sinh viên này? Hành động này không thể hoàn tác!')">
+                            <button class="danger small" type="submit">Xóa SV</button>
+                        </form>
+                    {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Chưa có sinh viên.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Tạo buổi học{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Tạo buổi học</h1>
+    <form method="post">
+        <div class="form-row">
+            <label>Lớp</label>
+            <input name="class_name" placeholder="D23CQCN07-B" required>
+        </div>
+        <div class="form-row">
+            <label>Môn học</label>
+            <input name="subject_name" placeholder="Lập trình Web" required>
+        </div>
+        <div class="form-row">
+            <label>Ngày học</label>
+            <input name="date" type="date" value="{{ today }}" required>
+        </div>
+        <div class="grid">
+            <div class="form-row">
+                <label>Giờ bắt đầu</label>
+                <input name="start_time" type="time" value="08:00" required>
+            </div>
+            <div class="form-row">
+                <label>Giờ kết thúc</label>
+                <input name="end_time" type="time" value="10:00" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <label>Trạng thái</label>
+            <select name="status">
+                <option value="active">active</option>
+                <option value="closed">closed</option>
+            </select>
+        </div>
+        <button type="submit">Lưu</button>
+        <a class="btn secondary" href="{{ url_for('sessions_list') }}">Quay lại</a>
+    </form>
+</div>
+{% endblock %}

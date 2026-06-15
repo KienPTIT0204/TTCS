@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Buổi học{% endblock %}
+{% block content %}
+<div class="actions" style="justify-content: space-between; align-items: center;">
+    <h1>Danh sách buổi học</h1>
+    {% if session.get('role') in ['admin', 'teacher'] %}
+        <a class="btn" href="{{ url_for('add_session') }}">Tạo buổi học</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Lớp</th>
+                <th>Môn học</th>
+                <th>Ngày</th>
+                <th>Thời gian</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sessions %}
+            <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.class_name }}</td>
+                <td>{{ item.subject_name }}</td>
+                <td>{{ item.date }}</td>
+                <td>{{ item.start_time }} - {{ item.end_time }}</td>
+                <td>
+                    <span style="{% if item.status == 'active' %}color: green;{% else %}color: red;{% endif %}">
+                        {{ item.status }}
+                    </span>
+                </td>
+                <td>
+                    <div class="actions">
+                        {% if session.get('role') in ['admin', 'teacher'] %}
+                            {% if item.status == 'active' %}
+                                <a class="btn small" href="{{ url_for('attendance_camera', lesson_id=item.id) }}">Mở camera điểm danh</a>
+                                <button class="btn small" onclick="closeSession({{ item.id }})">Đóng buổi học</button>
+                            {% else %}
+                                <span style="color: gray; font-style: italic;">Buổi học đã đóng</span>
+                            {% endif %}
+                        {% endif %}
+                        <a class="btn secondary small" href="{{ url_for('reports', session_id=item.id) }}">Xem báo cáo</a>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7">Chưa có buổi học.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function closeSession(sessionId) {
+    if (!confirm('Bạn chắc chắn muốn đóng buổi học này? Sinh viên chưa điểm danh sẽ được đánh vắng.')) {
+        return;
+    }
+    
+    fetch(`/api/close-session/${sessionId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.ok) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    })
+    .catch(err => {
+        alert('Lỗi: ' + err);
+    });
+}
+</script>
+{% endblock %}

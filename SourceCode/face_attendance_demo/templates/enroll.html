@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Đăng ký khuôn mặt{% endblock %}
+{% block content %}
+<h1>Đăng ký khuôn mặt</h1>
+<div class="card">
+    <p><strong>Sinh viên:</strong> {{ student.student_code }} - {{ student.full_name }}</p>
+    <p><strong>Lớp:</strong> {{ student.class_name }}</p>
+    <p><strong>Số ảnh đã lưu:</strong> <span id="faceCount">{{ face_count }}</span></p>
+</div>
+
+<div class="camera-layout">
+    <div class="card">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none"></canvas>
+    </div>
+    <div class="card">
+        <h2>Thao tác</h2>
+        <p>Nên chụp 15 - 25 ảnh với nhiều góc mặt và ánh sáng ổn định.</p>
+        <div class="actions">
+            <button id="captureBtn" type="button">Chụp 1 ảnh</button>
+            <button id="trainBtn" class="success" type="button">Huấn luyện lại model</button>
+            <a class="btn secondary" href="{{ url_for('students') }}">Quay lại</a>
+        </div>
+        <hr>
+        <div id="status" class="status-box">Đang mở camera...</div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const statusBox = document.getElementById('status');
+const faceCount = document.getElementById('faceCount');
+const captureBtn = document.getElementById('captureBtn');
+const trainBtn = document.getElementById('trainBtn');
+
+function setStatus(message, type='warn') {
+    statusBox.className = 'status-box ' + (type === 'good' ? 'status-good' : type === 'bad' ? 'status-bad' : 'status-warn');
+    statusBox.textContent = message;
+}
+
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+        setStatus('Camera đã sẵn sàng. Hãy nhìn thẳng và bấm chụp.', 'good');
+    } catch (err) {
+        setStatus('Không mở được camera: ' + err, 'bad');
+    }
+}
+
+function snapshot() {
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+captureBtn.addEventListener('click', async () => {
+    try {
+        const image = snapshot();
+        const res = await fetch('{{ url_for('api_enroll', student_id=student.id) }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image})
+        });
+        const data = await res.json();
+        if (data.ok) {
+            faceCount.textContent = data.count;
+            setStatus(data.message, 'good');
+        } else {
+            setStatus(data.message, 'bad');
+        }
+    } catch (err) {
+        setStatus('Lỗi khi chụp ảnh: ' + err, 'bad');
+    }
+});
+
+trainBtn.addEventListener('click', async () => {
+    try {
+        const res = await fetch('{{ url_for('api_train') }}', {method: 'POST'});
+        const data = await res.json();
+        setStatus(data.message, data.ok ? 'good' : 'bad');
+    } catch (err) {
+        setStatus('Lỗi huấn luyện model: ' + err, 'bad');
+    }
+});
+
+startCamera();
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{
+  "1": {
+    "id": 1,
+    "student_code": "B23DCCN455",
+    "full_name": "Cao Trung Kiên"
+  },
+  "2": {
+    "id": 2,
+    "student_code": "B23DCCN343",
+    "full_name": "Phạm Huy Hoàng"
+  },
+  "5": {
+    "id": 5,
+    "student_code": "B23DCCN675",
+    "full_name": "Nguyễn Quang Sơn"
+  },
+  "6": {
+    "id": 6,
+    "student_code": "B23DCCN687",
+    "full_name": "Nguyễn Đình Long"
+  },
+  "7": {
+    "id": 7,
+    "student_code": "B23DCCN359",
+    "full_name": "Nguyễn Hồng Hạnh"
+  }
+}

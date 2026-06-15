@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Camera điểm danh{% endblock %}
+{% block content %}
+<h1>Camera điểm danh</h1>
+<div class="card">
+    <p><strong>Buổi học:</strong> {{ lesson.subject_name }} - {{ lesson.class_name }}</p>
+    <p><strong>Thời gian:</strong> {{ lesson.date }} {{ lesson.start_time }} - {{ lesson.end_time }}</p>
+</div>
+
+<div class="camera-layout">
+    <div class="card">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none"></canvas>
+    </div>
+    <div class="card">
+        <h2>Trạng thái</h2>
+        <div id="status" class="status-box">Đang mở camera...</div>
+        <p>Tiến độ xác minh người thật:</p>
+        <div class="progress"><div id="progressInner" class="progress-inner"></div></div>
+        <hr>
+        <div class="actions">
+            <button id="toggleBtn" type="button">Tạm dừng</button>
+            <button id="resetBtn" class="secondary" type="button">Reset xác minh</button>
+            <button id="closeBtn" class="secondary" type="button" style="background-color: #dc3545;" onclick="closeLesson()">Đóng buổi học</button>
+            <a class="btn secondary" href="{{ url_for('reports', session_id=lesson.id) }}">Xem báo cáo</a>
+        </div>
+        <hr>
+        <p><strong>Hướng dẫn demo:</strong></p>
+        <p>Đưa 1 khuôn mặt vào camera, quay nhẹ sang trái/phải. Sau khi thanh xác minh đạt 100%, hệ thống sẽ nhận diện và lưu điểm danh.</p>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const statusBox = document.getElementById('status');
+const progressInner = document.getElementById('progressInner');
+const toggleBtn = document.getElementById('toggleBtn');
+const resetBtn = document.getElementById('resetBtn');
+let running = true;
+let busy = false;
+let timer = null;
+
+function setStatus(message, type='warn') {
+    statusBox.className = 'status-box ' + (type === 'good' ? 'status-good' : type === 'bad' ? 'status-bad' : 'status-warn');
+    statusBox.textContent = message;
+}
+
+function setProgress(value) {
+    progressInner.style.width = Math.max(0, Math.min(100, value || 0)) + '%';
+}
+
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+        setStatus('Camera đã sẵn sàng. Vui lòng đưa 1 khuôn mặt vào khung hình.', 'good');
+        timer = setInterval(sendFrame, 1200);
+    } catch (err) {
+        setStatus('Không mở được camera: ' + err, 'bad');
+    }
+}
+
+function snapshot() {
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+async function sendFrame() {
+    if (!running || busy || !video.videoWidth) return;
+    busy = true;
+    try {
+        const image = snapshot();
+        const res = await fetch('{{ url_for('api_recognize', lesson_id=lesson.id) }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image})
+        });
+        const data = await res.json();
+        if (data.status === 'liveness_required') {
+            setProgress(data.progress || 0);
+            setStatus(data.message, 'warn');
+        } else if (data.status === 'marked') {
+            setProgress(100);
+            setStatus(data.message + ' | Độ chính xác: ' + data.confidence + '%', 'good');
+            setTimeout(() => setProgress(0), 1000);
+        } else if (data.status === 'already') {
+            setProgress(100);
+            setStatus(data.message, 'warn');
+            setTimeout(() => setProgress(0), 1000);
+        } else if (data.status === 'unknown' || data.status === 'wrong_class') {
+            setStatus(data.message + (data.confidence ? ' | Confidence: ' + data.confidence : ''), 'bad');
+        } else if (data.ok) {
+            setStatus(data.message, 'warn');
+        } else {
+            setStatus(data.message, 'bad');
+        }
+    } catch (err) {
+        setStatus('Lỗi xử lý frame: ' + err, 'bad');
+    } finally {
+        busy = false;
+    }
+}
+
+toggleBtn.addEventListener('click', () => {
+    running = !running;
+    toggleBtn.textContent = running ? 'Tạm dừng' : 'Tiếp tục';
+    setStatus(running ? 'Đã tiếp tục nhận diện.' : 'Đã tạm dừng nhận diện.', running ? 'good' : 'warn');
+});
+
+resetBtn.addEventListener('click', async () => {
+    await fetch('{{ url_for('api_liveness_reset', lesson_id=lesson.id) }}', {method: 'POST'});
+    setProgress(0);
+    setStatus('Đã reset xác minh. Hãy quay nhẹ mặt sang trái/phải.', 'warn');
+});
+
+async function closeLesson() {
+    if (!confirm('Bạn chắc chắn muốn đóng buổi học này? Sinh viên chưa điểm danh sẽ được đánh vắng.')) {
+        return;
+    }
+    
+    running = false;
+    clearInterval(timer);
+    
+    try {
+        const res = await fetch('{{ url_for('api_close_session', session_id=lesson.id) }}', {method: 'POST'});
+        const data = await res.json();
+        if (data.ok) {
+            setStatus(data.message, 'good');
+            setTimeout(() => {
+                window.location.href = '{{ url_for('sessions_list') }}';
+            }, 2000);
+        } else {
+            alert('Lỗi: ' + data.message);
+            running = true;
+            timer = setInterval(sendFrame, 1200);
+        }
+    } catch (err) {
+        alert('Lỗi: ' + err);
+        running = true;
+        timer = setInterval(sendFrame, 1200);
+    }
+}
+
+startCamera();
+</script>
+{% endblock %}

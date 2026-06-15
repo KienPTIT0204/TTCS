@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Thêm sinh viên{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Thêm sinh viên</h1>
+    <form method="post">
+        <div class="form-row">
+            <label>Mã sinh viên</label>
+            <input name="student_code" required>
+        </div>
+        <div class="form-row">
+            <label>Họ tên</label>
+            <input name="full_name" required>
+        </div>
+        <div class="form-row">
+            <label>Lớp</label>
+            <input name="class_name" placeholder="D23CQCN07-B" required>
+        </div>
+        <div class="form-row">
+            <label>Tài khoản đăng nhập cho sinh viên</label>
+            <input name="username" placeholder="Để trống sẽ dùng mã sinh viên">
+        </div>
+        <div class="form-row">
+            <label>Mật khẩu</label>
+            <input name="password" placeholder="Để trống sẽ dùng 123456">
+        </div>
+        <button type="submit">Lưu</button>
+        <a class="btn secondary" href="{{ url_for('students') }}">Quay lại</a>
+    </form>
+</div>
+{% endblock %}

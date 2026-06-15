@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Trang chủ{% endblock %}
+{% block content %}
+<h1>Trang chủ</h1>
+
+{% if is_student %}
+<div class="grid">
+    <div class="stat">
+        <div>Buổi có mặt</div>
+        <div class="number" style="color:#27ae60;">{{ present_count }}</div>
+    </div>
+    <div class="stat">
+        <div>Buổi vắng mặt</div>
+        <div class="number" style="color:#e74c3c;">{{ absent_count }}</div>
+    </div>
+    <div class="stat">
+        <div>Tổng buổi học</div>
+        <div class="number">{{ present_count + absent_count }}</div>
+    </div>
+    <div class="stat">
+        <div>Tỉ lệ có mặt</div>
+        <div class="number" style="color:#2980b9;">
+            {% if present_count + absent_count > 0 %}
+                {{ "%.1f"|format(present_count / (present_count + absent_count) * 100) }}%
+            {% else %}
+                --
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+    <div class="card">
+        <h2>Tổng quan điểm danh</h2>
+        <canvas id="pieChart" height="220"></canvas>
+    </div>
+    <div class="card">
+        <h2>Theo môn học</h2>
+        <canvas id="subjectChart" height="220"></canvas>
+    </div>
+</div>
+
+{% if weekly_stats %}
+<div class="card">
+    <h2>Điểm danh theo ngày (gần nhất)</h2>
+    <canvas id="weeklyChart" height="120"></canvas>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Lịch sử điểm danh gần đây</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Môn học</th>
+                <th>Ngày</th>
+                <th>Thời gian điểm danh</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in recent %}
+            <tr>
+                <td>{{ row.subject_name }}</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.checkin_time if row.checkin_time else '--' }}</td>
+                <td>
+                    {% if row.status == 'present' %}
+                        <span style="color:#27ae60; font-weight:bold;">✅ Có mặt</span>
+                    {% else %}
+                        <span style="color:#e74c3c; font-weight:bold;">❌ Vắng mặt</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Chưa có dữ liệu điểm danh.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="grid">
+    <div class="stat">
+        <div>Tổng số sinh viên</div>
+        <div class="number">{{ total_students }}</div>
+    </div>
+    <div class="stat">
+        <div>Buổi học đang mở</div>
+        <div class="number">{{ active_sessions }}</div>
+    </div>
+    <div class="stat">
+        <div>Lượt điểm danh hôm nay</div>
+        <div class="number">{{ today_attendance }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Điểm danh gần đây</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Mã sinh viên</th>
+                <th>Họ tên</th>
+                <th>Môn học</th>
+                <th>Ngày</th>
+                <th>Thời gian điểm danh</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in recent %}
+            <tr>
+                <td>{{ row.student_code }}</td>
+                <td>{{ row.full_name }}</td>
+                <td>{{ row.subject_name }}</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.checkin_time }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">Chưa có dữ liệu điểm danh.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if is_student %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const presentCount = {{ present_count }};
+const absentCount  = {{ absent_count }};
+const subjectStats = {{ subject_stats | tojson }};
+const weeklyStats  = {{ weekly_stats | tojson }};
+
+// Màu chữ và grid theo dark theme
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#374151';
+
+// ---- Biểu đồ tròn ----
+new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Có mặt', 'Vắng mặt'],
+        datasets: [{
+            data: [presentCount, absentCount],
+            backgroundColor: ['#27ae60', '#e74c3c'],
+            borderColor: ['#1f2937', '#1f2937'],
+            borderWidth: 3,
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 13 } } },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const total = presentCount + absentCount;
+                        const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                        return ` ${ctx.label}: ${ctx.parsed} buổi (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// ---- Biểu đồ cột theo môn ----
+if (subjectStats.length > 0) {
+    new Chart(document.getElementById('subjectChart'), {
+        type: 'bar',
+        data: {
+            labels: subjectStats.map(s => s.subject_name),
+            datasets: [
+                { label: 'Có mặt',    data: subjectStats.map(s => s.present), backgroundColor: '#27ae60' },
+                { label: 'Vắng mặt', data: subjectStats.map(s => s.absent),  backgroundColor: '#e74c3c' }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true, ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, color: '#9ca3af' }, grid: { color: '#374151' } }
+            },
+            plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }
+        }
+    });
+} else {
+    document.getElementById('subjectChart').parentElement.innerHTML += '<p style="color:#6b7280; text-align:center;">Chưa có dữ liệu.</p>';
+}
+
+// ---- Biểu đồ đường theo ngày ----
+if (weeklyStats && weeklyStats.length > 0) {
+    const sorted = [...weeklyStats].reverse();
+    new Chart(document.getElementById('weeklyChart'), {
+        type: 'line',
+        data: {
+            labels: sorted.map(s => s.date),
+            datasets: [
+                {
+                    label: 'Có mặt',
+                    data: sorted.map(s => s.present),
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39,174,96,0.15)',
+                    tension: 0.3, fill: true, pointBackgroundColor: '#27ae60',
+                },
+                {
+                    label: 'Vắng mặt',
+                    data: sorted.map(s => s.absent),
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231,76,60,0.1)',
+                    tension: 0.3, fill: true, pointBackgroundColor: '#e74c3c',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#9ca3af' }, grid: { color: '#374151' } }
+            },
+            plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }
+        }
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

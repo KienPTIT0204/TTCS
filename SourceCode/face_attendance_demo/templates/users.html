@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Quản lý tài khoản{% endblock %}
+{% block content %}
+<h1>Quản lý tài khoản</h1>
+<div class="grid">
+    <div class="card">
+        <h2>Tạo tài khoản</h2>
+        <form method="post">
+            <div class="form-row">
+                <label>Tài khoản</label>
+                <input name="username" required>
+            </div>
+            <div class="form-row">
+                <label>Mật khẩu</label>
+                <input name="password" type="password" required>
+            </div>
+            <div class="form-row">
+                <label>Họ tên</label>
+                <input name="full_name" required>
+            </div>
+            <div class="form-row">
+                <label>Vai trò</label>
+                <select name="role">
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Giáo viên</option>
+                    <option value="student">Sinh viên</option>
+                </select>
+            </div>
+            <button type="submit">Tạo tài khoản</button>
+        </form>
+    </div>
+    <div class="card">
+        <h2>Danh sách tài khoản</h2>
+        <table class="table">
+            <thead><tr><th>ID</th><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th></tr></thead>
+            <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ user.role }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Hệ thống điểm danh{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.get('user_id') %}
+    <div class="navbar">
+        <div class="brand">Face Attendance</div>
+        <div>
+            <a href="{{ url_for('dashboard') }}">Trang chủ</a>
+            <a href="{{ url_for('students') }}">Sinh viên</a>
+            {% if session.get('role') in ['admin', 'teacher'] %}
+                <a href="{{ url_for('sessions_list') }}">Buổi học</a>
+                <a href="{{ url_for('reports') }}">Báo cáo</a>
+            {% endif %}
+            {% if session.get('role') == 'admin' %}
+                <a href="{{ url_for('users') }}">Tài khoản</a>
+            {% endif %}
+            {% if session.get('role') == 'student' %}
+                <a href="{{ url_for('my_attendance') }}">Lịch sử của tôi</a>
+            {% endif %}
+        </div>
+        <div>
+            {{ session.get('full_name') }} ({{ session.get('role') }})
+            <a href="{{ url_for('logout') }}">Đăng xuất</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">© {{ current_year }} - Hệ thống điểm danh sinh viên</div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Báo cáo điểm danh{% endblock %}
+{% block content %}
+<h1>Báo cáo điểm danh</h1>
+<div class="card">
+    <form method="get" class="grid">
+        <div class="form-row">
+            <label>Ngày</label>
+            <input type="date" name="date" value="{{ filters.date }}">
+        </div>
+        <div class="form-row">
+            <label>Lớp</label>
+            <select name="class_name">
+                <option value="">Tất cả</option>
+                {% for item in class_names %}
+                    <option value="{{ item.class_name }}" {% if filters.class_name == item.class_name %}selected{% endif %}>{{ item.class_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <label>Buổi học</label>
+            <select name="session_id">
+                <option value="">Tất cả</option>
+                {% for item in sessions %}
+                    <option value="{{ item.id }}" {% if filters.session_id == item.id|string %}selected{% endif %}>#{{ item.id }} - {{ item.subject_name }} - {{ item.class_name }} - {{ item.date }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row" style="align-self:end;">
+            <button type="submit">Lọc</button>
+            <a class="btn success" href="{{ url_for('export_report', date=filters.date, class_name=filters.class_name, session_id=filters.session_id) }}">Xuất Excel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Mã sinh viên</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>Môn học</th>
+                <th>Ngày</th>
+                <th>Thời gian điểm danh</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.student_code }}</td>
+                <td>{{ row.full_name }}</td>
+                <td>{{ row.class_name }}</td>
+                <td>{{ row.subject_name }}</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.checkin_time }}</td>
+                <td>{{ row.status }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7">Chưa có dữ liệu điểm danh.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
